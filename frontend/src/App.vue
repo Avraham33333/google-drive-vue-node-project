@@ -1,13 +1,23 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <h1>Welcome to Your Vue.js App</h1>
+    <h1>Google Drive Files</h1>
+    <FileList />
+    <hr />
+    <h1>Ask a Question</h1>
+    <AskQuestion />
   </div>
 </template>
 
 <script>
+import FileList from './components/FileList.vue';
+import AskQuestion from './components/AskQuestion.vue';
+
 export default {
-  name: 'App'
+  name: 'App',
+  components: {
+    FileList,
+    AskQuestion,
+  },
 };
 </script>
 
