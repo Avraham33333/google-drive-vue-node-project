@@ -2,6 +2,7 @@
 
 const express = require('express');
 const { google } = require('googleapis');
+const { Configuration, OpenAIApi } = require("openai");
 require('dotenv').config();
 
 const app = express();
@@ -12,17 +13,17 @@ app.use(express.json());
 
 // Create an OAuth2 client using credentials from .env
 const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.REDIRECT_URI
+  process.env.GOOGLE_CLIENT_ID,       
+  process.env.GOOGLE_CLIENT_SECRET,   
+  process.env.REDIRECT_URI            
 );
 
-// 1. Home route
+// Home route
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
-// 2. Start the OAuth flow by redirecting to Google’s consent screen
+// Start the OAuth flow by redirecting to Google's consent screen
 app.get('/google-auth', (req, res) => {
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline', // to get a refresh token
@@ -31,7 +32,7 @@ app.get('/google-auth', (req, res) => {
   res.redirect(authUrl);
 });
 
-// 3. OAuth callback route - exchange code for tokens
+// OAuth callback route - exchange code for tokens
 app.get('/oauth2callback', async (req, res) => {
   try {
     const code = req.query.code;
@@ -44,7 +45,7 @@ app.get('/oauth2callback', async (req, res) => {
   }
 });
 
-// 4. List files from Google Drive with pagination support
+// List files from Google Drive with pagination support
 app.get('/files', async (req, res) => {
   try {
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
@@ -64,15 +65,27 @@ app.get('/files', async (req, res) => {
   }
 });
 
-// 5. AI Question Interface placeholder endpoint
+// Setup OpenAI API using the API key from .env
+const openaiConfig = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,  // Your OpenAI API key
+});
+const openai = new OpenAIApi(openaiConfig);
+
+// AI Question Interface endpoint using OpenAI
 app.post('/ask', async (req, res) => {
   try {
-    const question = req.body.question;
-    // Placeholder: In a real implementation, you'd call the OpenAI API here
-    const answer = `You asked: "${question}". (This is a placeholder answer.)`;
+    const { question } = req.body;
+    
+    const completion = await openai.createCompletion({
+      model: "text-davinci-003",
+      prompt: question,
+      max_tokens: 150,
+    });
+    
+    const answer = completion.data.choices[0].text.trim();
     res.json({ answer });
   } catch (err) {
-    console.error('Error handling AI question:', err);
+    console.error('Error asking question:', err);
     res.status(500).send('Error processing your question');
   }
 });
