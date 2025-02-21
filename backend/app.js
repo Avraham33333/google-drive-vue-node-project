@@ -1,9 +1,12 @@
 // backend/app.js
 
-const express = require('express');
-const { google } = require('googleapis');
-const { Configuration, OpenAIApi } = require("openai");
-require('dotenv').config();
+import 'dotenv/config';
+import express from 'express';
+import { google } from 'googleapis';
+import OpenAI from 'openai';
+
+console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
+console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -48,7 +51,7 @@ app.get('/oauth2callback', async (req, res) => {
 /**
  * GET /files
  * - Lists files from Google Drive with pagination
- * - Also supports optional date filters via ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+ * - Supports optional date filters via ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
  */
 app.get('/files', async (req, res) => {
   try {
@@ -116,13 +119,9 @@ app.put('/files/:id', async (req, res) => {
     }
 
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
-
-    // drive.files.update => pass the updated "name"
     const response = await drive.files.update({
       fileId,
-      requestBody: {
-        name
-      }
+      requestBody: { name }
     });
 
     res.json(response.data);
@@ -149,11 +148,8 @@ app.delete('/files/:id', async (req, res) => {
   }
 });
 
-// Setup OpenAI API using the latest GPT-4o model
-const openaiConfig = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY
-});
-const openai = new OpenAIApi(openaiConfig);
+// Setup OpenAI API using the new default export from v4
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /**
  * POST /ask
@@ -163,8 +159,9 @@ app.post('/ask', async (req, res) => {
   try {
     const { question } = req.body;
 
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4o", // Using the latest OpenAI model
+    // Note: Adjust the method call as needed for v4 (example uses chat completions)
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o", // Using the latest model name (update if needed)
       messages: [{ role: "user", content: question }],
       max_tokens: 150
     });
