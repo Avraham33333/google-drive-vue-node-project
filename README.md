@@ -162,6 +162,7 @@ When both servers start successfully, you’ll see messages like:
 
 - **Ask a Question:**  
   In the **Ask a Question** section, type something like “Which file is the largest?” or “Which file was last modified?” and click **Submit**.  
+  - You must have at most 10 files in google drive for this feature to work properly. It only supports up to 10 files so that the usage of Open AI's API won't be expensive.
   - The backend will fetch file metadata from Google Drive (excluding folders), build a prompt, and call OpenAI’s GPT-4 (or GPT-3.5-turbo if you changed the model).  
   - The AI’s answer is displayed under “Answer:”.
 
