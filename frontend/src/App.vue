@@ -1,10 +1,13 @@
 <template>
   <div id="app">
-    <h1>Google Drive Files</h1>
-    <FileList />
-    <hr />
-    <h1>Ask a Question</h1>
+    <!-- Main title -->
+    <h1 class="main-title">Google Drive Files</h1>
+
+    <!-- Ask Question component -->
     <AskQuestion />
+
+    <!-- Directly include FileList without an extra heading -->
+    <FileList />
   </div>
 </template>
 
@@ -16,8 +19,8 @@ export default {
   name: 'App',
   components: {
     FileList,
-    AskQuestion,
-  },
+    AskQuestion
+  }
 };
 </script>
 
@@ -29,5 +32,10 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+}
+
+.main-title {
+  font-size: 2em;
+  margin-bottom: 0.5em;
 }
 </style>
