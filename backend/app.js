@@ -45,12 +45,13 @@ app.get('/oauth2callback', async (req, res) => {
     const code = req.query.code;
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
-    res.send('Authentication successful! You can now close this window.');
+    res.redirect('http://localhost:8080/'); // Redirect to front end
   } catch (err) {
     console.error('Error during OAuth callback', err);
     res.status(500).send('Authentication failed');
   }
 });
+
 
 /**
  * GET /files
