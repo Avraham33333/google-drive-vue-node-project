@@ -1,0 +1,12 @@
+{
+  "name": "google-drive-vue-node-project",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "concurrently \"npm run start-backend\" \"npm run serve-frontend\" \"echo Launch App: http://localhost:3000/google-auth\"",
+    "start-backend": "cd backend && node app.js",
+    "serve-frontend": "cd frontend && npm run serve"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
