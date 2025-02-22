@@ -15,7 +15,7 @@
           <strong>{{ file.name }}</strong> (ID: {{ file.id }})
         </div>
         <div>Owner(s): {{ displayOwner(file) }}</div>
-        <div>Last Modified: {{ file.modifiedTime || 'N/A' }}</div>
+        <div>Last Modified: {{ formatModifiedTime(file.modifiedTime) }}</div>
         <div>Size: {{ displaySize(file.size) }}</div>
         <div>
           <input v-model="file.newName" placeholder="New name" />
@@ -43,7 +43,7 @@ export default {
   methods: {
     async fetchFiles() {
       try {
-        let url = 'http://localhost:3000/files';
+        let url = "http://localhost:3000/files";
         const params = new URLSearchParams();
         
         if (this.startDate) params.append("startDate", this.startDate);
@@ -55,7 +55,7 @@ export default {
 
         const response = await fetch(url);
         const data = await response.json();
-        // Map files to add a newName property for renaming purposes
+        // Map files to add a newName property for renaming
         this.files = data.files.map(file => ({ ...file, newName: "" }));
       } catch (error) {
         console.error("Error fetching files:", error);
@@ -112,6 +112,23 @@ export default {
     displaySize(size) {
       if (!size) return "N/A";
       return `${size} bytes`;
+    },
+
+    // Helper method to format the modifiedTime into dd/mm/yyyy ; HH:mm
+    formatModifiedTime(isoString) {
+      if (!isoString) return "N/A";
+      const date = new Date(isoString);
+
+      // Extract the parts
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+
+      // Return dd/mm/yyyy ; HH:mm
+      return `${day}/${month}/${year} ; ${hours}:${minutes}`;
     }
   }
 };
