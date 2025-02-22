@@ -12,7 +12,7 @@
     <ul>
       <li v-for="file in files" :key="file.id">
         <div>
-          <strong>{{ file.name }}</strong>
+          <strong>{{ file.name }}</strong> (ID: {{ file.id }})
         </div>
         <div>Owner(s): {{ displayOwner(file) }}</div>
         <div>Last Modified: {{ file.modifiedTime || 'N/A' }}</div>
