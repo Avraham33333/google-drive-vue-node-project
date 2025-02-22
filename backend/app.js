@@ -2,6 +2,7 @@
 
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors'; // Added CORS
 import { google } from 'googleapis';
 import OpenAI from 'openai';
 
@@ -10,6 +11,9 @@ console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Enable CORS for all routes
+app.use(cors());
 
 // Parse JSON bodies for POST and PUT/PATCH requests
 app.use(express.json());
@@ -50,7 +54,7 @@ app.get('/oauth2callback', async (req, res) => {
 
 /**
  * GET /files
- * - Lists files from Google Drive with pagination
+ * - Lists actual files (excludes folders) from Google Drive with pagination
  * - Supports optional date filters via ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
  */
 app.get('/files', async (req, res) => {
@@ -59,9 +63,11 @@ app.get('/files', async (req, res) => {
     const pageSize = req.query.pageSize ? parseInt(req.query.pageSize) : 10;
     const pageToken = req.query.pageToken || null;
 
-    // Optional date filters
+    // Optional date filters and excluding folders
     const { startDate, endDate } = req.query;
     const qParts = [];
+    // Exclude folders
+    qParts.push("mimeType != 'application/vnd.google-apps.folder'");
     if (startDate) {
       qParts.push(`modifiedTime >= '${startDate}T00:00:00'`);
     }
@@ -73,7 +79,7 @@ app.get('/files', async (req, res) => {
     const response = await drive.files.list({
       pageSize,
       pageToken,
-      fields: 'nextPageToken, files(name, size, modifiedTime, owners(displayName))',
+      fields: 'nextPageToken, files(id, name, size, modifiedTime, owners(displayName), mimeType)',
       q
     });
     
@@ -95,7 +101,7 @@ app.get('/files/:id', async (req, res) => {
 
     const response = await drive.files.get({
       fileId,
-      fields: 'name, owners, modifiedTime'
+      fields: 'id, name, owners, modifiedTime'
     });
 
     res.json(response.data);
@@ -155,49 +161,40 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  * POST /ask
  * - AI Question Interface endpoint using OpenAI
  *   Fetches file metadata if the question involves file details,
- *   then includes name, size, modifiedTime, and owners in the context.
- *   Distinguishes folders from files using the mimeType field.
+ *   excludes folders,
+ *   and includes name, size, modifiedTime, and owners in the context.
  */
 app.post('/ask', async (req, res) => {
   try {
     const { question } = req.body;
     let prompt = question; // Default prompt is just the user question
 
-    // Check if the question seems to involve file details
+    // Check if the user's question seems to involve file details
     const qLower = question.toLowerCase();
     if (qLower.includes("largest") || qLower.includes("modified") || qLower.includes("file")) {
-      // Fetch file metadata from Google Drive including mimeType to distinguish folders
       const drive = google.drive({ version: 'v3', auth: oauth2Client });
+      // Exclude folders explicitly
       const response = await drive.files.list({
         pageSize: 10,
-        fields: 'files(name, size, modifiedTime, mimeType, owners(displayName))'
+        fields: 'files(id, name, size, modifiedTime, mimeType, owners(displayName))',
+        q: "mimeType != 'application/vnd.google-apps.folder'"
       });
 
       let context = "";
       if (response.data.files && response.data.files.length > 0) {
         context = response.data.files.map(f => {
           const fileName = f.name || "Unknown file";
-          let typeLabel = "File";
-          if (f.mimeType === "application/vnd.google-apps.folder") {
-            typeLabel = "Folder";
-          }
-          const sizeInfo = typeLabel === "File" 
-            ? (f.size ? `${f.size} bytes` : "size not available")
-            : ""; // Folders typically don't have a size
+          const sizeInfo = f.size ? `${f.size} bytes` : "size not available";
           const lastModified = f.modifiedTime || "N/A";
           let ownerNames = "N/A";
           if (f.owners && Array.isArray(f.owners) && f.owners.length > 0) {
             ownerNames = f.owners.map(owner => owner.displayName).join(", ");
           }
-          let result = `${fileName} (${typeLabel})\n  Last Modified: ${lastModified}\n  Owners: ${ownerNames}`;
-          if (typeLabel === "File") {
-            result += `\n  Size: ${sizeInfo}`;
-          }
-          return result;
+          return `${fileName}\n  Last Modified: ${lastModified}\n  Owners: ${ownerNames}\n  Size: ${sizeInfo}`;
         }).join("\n\n");
       }
       
-      prompt = `You will answer a question, based on the following details about folders and files (don't consider folders to be files; if the question mention "file" or "files" that doesn't refer to folders - keep this in mind, but don't mention it in your answer):\n${context}\n\nAnswer the question: ${question}`;
+      prompt = `Based on the following file details:\n${context}\n\nAnswer the question: ${question}`;
     }
 
     // Use GPT-4 model; change to "gpt-3.5-turbo" if GPT-4 is unavailable
