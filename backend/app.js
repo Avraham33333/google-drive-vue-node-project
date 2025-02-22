@@ -154,19 +154,44 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 /**
  * POST /ask
  * - AI Question Interface endpoint using OpenAI
+ *   Fetches file metadata if the question involves file details,
+ *   then includes it in the prompt for a more contextual response.
  */
 app.post('/ask', async (req, res) => {
   try {
     const { question } = req.body;
+    let prompt = question; // Default prompt is just the user question
 
-    // Use GPT-4 model
+    // Check if the user's question seems to involve files
+    const qLower = question.toLowerCase();
+    if (qLower.includes("largest") || qLower.includes("modified") || qLower.includes("file")) {
+      // Fetch file metadata from Google Drive
+      const drive = google.drive({ version: 'v3', auth: oauth2Client });
+      const response = await drive.files.list({
+        pageSize: 10,
+        fields: 'files(id, name, size, modifiedTime)'
+      });
+
+      let context = "";
+      if (response.data.files && response.data.files.length > 0) {
+        context = response.data.files.map(f => {
+          // Some files or folders may not have a 'size' property
+          const sizeInfo = f.size ? `${f.size} bytes` : "size not available";
+          return `${f.name} - ${sizeInfo}`;
+        }).join("\n");
+      }
+
+      // Incorporate file details into the prompt
+      prompt = `Based on the following file details:\n${context}\n\nAnswer the question: ${question}`;
+    }
+
+    // Use GPT-4 model; change to "gpt-3.5-turbo" if you don't have GPT-4 access
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
-      messages: [{ role: "user", content: question }],
+      messages: [{ role: "user", content: prompt }],
       max_tokens: 150
     });
 
-    // In OpenAI SDK v4, the response object returns choices at the top level
     const answer = completion.choices[0].message.content.trim();
     res.json({ answer });
   } catch (err) {
