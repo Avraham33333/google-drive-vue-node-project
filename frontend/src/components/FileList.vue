@@ -4,21 +4,24 @@
 
     <!-- Date Filter -->
     <label>Start Date:</label>
-    <input type="date" v-model="startDate">
+    <input type="date" v-model="startDate" />
     <label>End Date:</label>
-    <input type="date" v-model="endDate">
+    <input type="date" v-model="endDate" />
     <button @click="fetchFiles">Filter</button>
 
     <ul>
       <li v-for="file in files" :key="file.id">
-        <strong>{{ file.name }}</strong> (ID: {{ file.id }})
-        
-        <!-- Rename file -->
-        <input v-model="file.newName" placeholder="New name">
-        <button @click="renameFile(file.id, file.newName)">Rename</button>
-
-        <!-- Delete file -->
-        <button @click="deleteFile(file.id)">Delete</button>
+        <div>
+          <strong>{{ file.name }}</strong>
+        </div>
+        <div>Owner(s): {{ displayOwner(file) }}</div>
+        <div>Last Modified: {{ file.modifiedTime || 'N/A' }}</div>
+        <div>Size: {{ displaySize(file.size) }}</div>
+        <div>
+          <input v-model="file.newName" placeholder="New name" />
+          <button @click="renameFile(file.id, file.newName)">Rename</button>
+          <button @click="deleteFile(file.id)">Delete</button>
+        </div>
       </li>
     </ul>
   </div>
@@ -52,7 +55,8 @@ export default {
 
         const response = await fetch(url);
         const data = await response.json();
-        this.files = data.files.map(file => ({ ...file, newName: "" })); // Add a newName field
+        // Map files to add a newName property for renaming purposes
+        this.files = data.files.map(file => ({ ...file, newName: "" }));
       } catch (error) {
         console.error("Error fetching files:", error);
       }
@@ -96,6 +100,18 @@ export default {
       } catch (error) {
         console.error("Error deleting file:", error);
       }
+    },
+
+    displayOwner(file) {
+      if (file.owners && Array.isArray(file.owners) && file.owners.length > 0) {
+        return file.owners.map(o => o.displayName).join(", ");
+      }
+      return "N/A";
+    },
+
+    displaySize(size) {
+      if (!size) return "N/A";
+      return `${size} bytes`;
     }
   }
 };
