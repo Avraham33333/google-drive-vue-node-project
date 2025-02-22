@@ -159,14 +159,15 @@ app.post('/ask', async (req, res) => {
   try {
     const { question } = req.body;
 
-    // Note: Adjust the method call as needed for v4 (example uses chat completions)
+    // Use GPT-4 model
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o", // Using the latest model name (update if needed)
+      model: "gpt-4",
       messages: [{ role: "user", content: question }],
       max_tokens: 150
     });
 
-    const answer = completion.data.choices[0].message.content.trim();
+    // In OpenAI SDK v4, the response object returns choices at the top level
+    const answer = completion.choices[0].message.content.trim();
     res.json({ answer });
   } catch (err) {
     console.error('Error processing question:', err);
