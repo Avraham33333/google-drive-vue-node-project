@@ -34,7 +34,11 @@ app.get('/', (req, res) => {
 app.get('/google-auth', (req, res) => {
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline', // to get a refresh token
-    scope: ['https://www.googleapis.com/auth/drive'] // Full access to Google Drive
+    scope: [
+      'https://www.googleapis.com/auth/drive',
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile',
+    ],
   });
   res.redirect(authUrl);
 });
@@ -45,13 +49,26 @@ app.get('/oauth2callback', async (req, res) => {
     const code = req.query.code;
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
-    res.redirect('http://localhost:8080/'); // Redirect to front end
+    // Redirect to front end after successful authentication
+    res.redirect('http://localhost:8080/');
   } catch (err) {
     console.error('Error during OAuth callback', err);
     res.status(500).send('Authentication failed');
   }
 });
 
+// Return the user's email and photo from Google's userinfo endpoint
+app.get('/userinfo', async (req, res) => {
+  try {
+    const oauth2 = google.oauth2({ auth: oauth2Client, version: 'v2' });
+    // This returns { email, id, name, picture, ... }
+    const { data } = await oauth2.userinfo.get();
+    res.json(data);
+  } catch (err) {
+    console.error('Error fetching user info:', err);
+    res.status(500).send('Failed to fetch user info');
+  }
+});
 
 /**
  * GET /files
